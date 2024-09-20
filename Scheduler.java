@@ -3,7 +3,7 @@ import java.util.*;
 public class Scheduler {
     List<Processo> processos = new ArrayList<Processo>();
     int tempo = 0;
-    int surtadoLimite = 0;
+    int surtadoLimite;
 
     public void addProcesso(Processo p) {
         processos.add(p);
@@ -56,6 +56,7 @@ public class Scheduler {
         }
     }
 
+
     public void escalonar() {
         Processo processoEscolhido = escolherProcesso();
         if (processoEscolhido !=null) {
@@ -70,10 +71,13 @@ public class Scheduler {
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU()-1);
                 surtadoLimite--;
+            }
+            else{
 
-        }
+            }
 
     }
+}
 }
 
 /**
