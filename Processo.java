@@ -8,7 +8,6 @@ public class Processo {
     private int prioridade;
     private int creditos;
     private Estado estado;
-    private int tempoBloqueado;
 
     public Processo(String nome, int surtoCPU, int tempoES, int tempoTotalCPU, int ordem, int prioridade, int creditos,
             Estado estado) {
