@@ -9,7 +9,7 @@ public class Scheduler {
         processos.add(p);
     }
 
-       public Processo escolherProcesso() {
+    public Processo escolherProcesso() {
         Processo processoEscolhido = null;
         Processo processoRunning = null;
     
@@ -92,3 +92,34 @@ public class Scheduler {
  * e o processo 1, que acabou de ser executado, foi para o final da fila, e o processo 2, 
  *  já que foi o penúltimo a ser executado, foi para o terceiro lugar, atrás do 4 e 3 (escolhido)
  **/
+
+
+ /*
+  * pensamentos lucao ~tentando entender
+
+    Os processos podem estar em 4 estados: Ready, Running, Blocked e Exit
+    Os processos já foram admitidos, o simulador deverá apenas executar
+
+    Cada processo tem um número de creditos. INICIALMENTE, o numero de creditos é igual a prioridade
+    O processo que tiver o maior numero de creditos, e esta em estado READY, é selecionado.
+    Ao ser escalonado, o processo utiliza tempo de CPU, sendo esse tempo um
+    surto de CPU anterior à um bloqueio (se o processo tem E/S) ou tempo total de CPU.
+    Em processos com operações de E/S, o surto é descontado do tempo total de CPU.
+
+    A cada segundo que passa, o processo em execucao perde um credito. 
+    quando seus creditos chegarem a 0, ou houver algum bloqueio (processo de
+    entrada e saida) o escalanador deve selecionar outro processo para exec
+
+    Se nenhum processo na fila de prontos possuir creditos, o algoritmo faz uma atribuicao de 
+    creditos a todos os processos (incluindo processos blocked), de acordo com
+    cred = cred / 2 + prioridade.
+
+
+    O escalanador deverá apresentar o escalonamento dos processos, sua utilização de CPU, 
+    o tempo de execução, bem como os seus estados em uma linha do tempo.
+    
+    O parametro ordem é utilizado como criterio de desempate (se mais de um processo possuir
+    a mesma prioridade). Um processo que acabou de perder sua prioridade (se for zero), sera 
+    o que possui a menor ordem atual, tendo os outros processos uma atualizao de sua ordem.
+
+  */
