@@ -161,6 +161,13 @@ public class Scheduler {
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
                 processoEscolhido.setSurtoCPU(processoEscolhido.getSurtoCPU() - 1);
                 
+
+                // NO TEMPO 13, O PROCESSO A DEVERIA PARAR A SUA EXECUÇÃO E IR PARA O READY.
+                // ESTA FALTANDO UMA VERIFICAÇÃO DOS CREDITOS PARA AQUELES PROCESSOS QUE TEM E/S
+                // SE UTILIZAMOS O creditosChecker(processoEscolhido) AQUI, PROCESSOS QUE TEM QUE SER SETADOS
+                // COMO BLOCKED ENTRAM AQUI ANTES DE ACONTECER A VERIFICAÇÃO DO BLOCKED, ENTAO ELES VAO PRA READY.
+                // ACHAR UM JEITO DE ENCAIXAR O blockChecker() AQUI, ANTES DO creditosChecker().
+
                 //creditosChecker(processoEscolhido);
 
             // os sem surtoCPU caem aqui (sem alterar surtoCPU)
