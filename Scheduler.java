@@ -17,29 +17,26 @@ public class Scheduler {
     }
 
     public Processo escolherProcesso() {
-        Processo processoEscolhido = null;
+        Processo processoEscolhido = processos.get(0);
         Processo processoRunning = null;
 
         // Verificar se existe um processo RUNNING
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING) {
                 processoRunning = p;
-                break;
             }
-        }
 
-        // Se existir um processo RUNNING e ele ainda tiver créditos e o surtoCPU não
-        // tiver chegado a zero, mantê-lo
-        if (processoRunning != null && processoRunning.getCreditos() > 0 && processoRunning.getSurtoCPU() > 0) {
-            processoEscolhido = processoRunning;
-        } else {
-            // Escolher o processo com maior número de créditos que está na fila de prontos
-            for (Processo p : processos) {
+            // Se existir um processo RUNNING e ele ainda tiver créditos e o surtoCPU não tiver chegado a zero, mantê-lo
+            if (processoRunning != null && processoRunning.getCreditos() > 0 && (processoRunning.getSurtoCPU() > 0 || processoRunning.getSurtoCPU() == -1)) {
+                processoEscolhido = processoRunning;
+            } 
+
+            // Se o processo que está executando não tiver mais créditos ou surtoCPU, achar o outro processo que deveria rodar
+            else {
                 if (p.getEstado() == Estado.READY) {
-                    if (processoEscolhido == null ||
-                            p.getCreditos() > processoEscolhido.getCreditos() ||
+                    if (p.getCreditos() > processoEscolhido.getCreditos() ||
                             (p.getCreditos() == processoEscolhido.getCreditos()
-                                    && p.getOrdem() > processoEscolhido.getOrdem())) {
+                                    && p.getOrdem() < processoEscolhido.getOrdem())) {
                         processoEscolhido = p;
                     }
                 }
@@ -65,27 +62,37 @@ public class Scheduler {
         }
     }
 
-    public void blockChecker() { //checa e atualiza o estado dos processos blocked
+    public void blockChecker() { // checa e atualiza o estado dos processos blocked
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING && p.getSurtoCPU() == 0) {
                 p.setEstado(Estado.BLOCKED);
-            } else if (p.getEstado() == Estado.BLOCKED && p.getTempoES() == 0) {
-                for (Processo restaurador : backup) {
-                    if (restaurador.getNome().equals(p.getNome())) {
-                        p.setSurtoCPU(restaurador.getSurtoCPU());
-                        p.setEstado(Estado.READY);
-                    }
-                }
-            } else if (p.getEstado() == Estado.BLOCKED) {
+                System.out.println("Processo " + p.getNome() + " foi bloqueado, iniciando operações E/S.");
+            }
+            else if (p.getEstado() == Estado.BLOCKED){
                 p.setTempoES(p.getTempoES() - 1);
+
+                if (p.getTempoES() == 0){
+                    int surtoDefault = p.getSurtoCPUDefault();
+                    p.setSurtoCPU(surtoDefault);
+                    System.out.println("Processo " + p.getNome() + " atualizou o tempo de Surto de CPU");
+                       
+                    p.setEstado(Estado.READY);
+                    System.out.println("Processo " + p.getNome() + " finalizou as operações de E/S, seu estado foi atualizado para READY.");
+                }
+
+                else{
+                    System.out.println("Processo " + p.getNome() + " está bloqueado, faltam " + p.getTempoES()
+                            + " unidades de tempo para finalizar as operações de E/S.");
+                }
             }
         }
     }
 
-    public void terminator() { //se algum processo tiver completado seu tempo de cpu, é terminado
+    public void terminator() { // se algum processo tiver completado seu tempo de cpu, é terminado
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING && p.getTempoTotalCPU() == 0) {
                 p.setEstado(Estado.EXIT);
+                System.out.println("Processo " + p.getNome() + " terminou.");
             }
         }
     }
@@ -95,7 +102,7 @@ public class Scheduler {
             if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
                 for (Processo p2 : processos) {
                     if (p2.getOrdem() < p.getOrdem()) {
-                        p2.setOrdem(p2.getOrdem() + 1);
+                        p2.setOrdem(p2.getOrdem() - 1);
                     }
                 }
                 p.setOrdem(processos.size());
@@ -103,45 +110,76 @@ public class Scheduler {
         }
     }
 
-    public void escalonar() {
-        terminator();
-        blockChecker();
-        Processo processoEscolhido = escolherProcesso();
-        if (processoEscolhido != null) {
-            if (processoEscolhido.getEstado() == Estado.READY && processoEscolhido.getSurtoCPU() > 0) { //o que eu quero pegar aqui são os processos com surtoCPU
-                processoEscolhido.setEstado(Estado.RUNNING);
-                processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
-                processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
-                processoEscolhido.setSurtoCPU(processoEscolhido.getSurtoCPU() - 1);
-                processoEscolhido.setPrioridade(processoEscolhido.getPrioridade() - 1);
-                atualizarOrdem();
-            } else if (processoEscolhido.getEstado() == Estado.READY && processoEscolhido.getSurtoCPU() == 0) { // os sem surtoCPU caem aqui (sem alterar surtoCPU)
-                processoEscolhido.setEstado(Estado.RUNNING);
-                processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
-                processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
-                processoEscolhido.setPrioridade(processoEscolhido.getPrioridade() - 1);
-                atualizarOrdem();
-            }   
+    public boolean todosFinalizados() {
+        for (Processo p : processos) {
+            if (p.getEstado() != Estado.EXIT) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+
+    public void creditosChecker(Processo p){
+        if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
+            System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY.");
+            p.setEstado(Estado.READY);
+            atribuicaoDeCreditos();
         }
     }
 
-    public static void main(String[] args) {
-        Scheduler scheduler = new Scheduler();
 
-        Processo p1 = new Processo("A", 2, 5, 6, 1, 3, 1, Estado.READY);
-        Processo p2 = new Processo("B", 3, 10, 6, 2, 3, 1, Estado.READY);
-        Processo p3 = new Processo("C", 0, 0, 14, 3, 3, 1, Estado.READY);
-        Processo p4 = new Processo("D", 0, 0, 10, 4, 3, 1 , Estado.READY);
+    public void escalonar() {
 
-        scheduler.addProcesso(p1);
-        scheduler.addProcesso(p2);
-        scheduler.addProcesso(p3);
-        scheduler.addProcesso(p4);
+        System.out.println("Processos iniciais: ");
 
-        scheduler.backupProcessos();
+        for (int j = 0; j < processos.size(); j++) {
+            System.out.println("Processo " + j + ": " + processos.get(j).getNome() + "; SurtoCPU: " 
+                            + processos.get(j).getSurtoCPU() + "; TempoES: " + processos.get(j).getTempoES()
+                            + "; TempoTotalCPU: " + processos.get(j).getTempoTotalCPU() + "; Ordem: "
+                            + processos.get(j).getOrdem() + "; Prioridade: " + processos.get(j).getPrioridade()
+                            + "; Creditos: " + processos.get(j).getCreditos() + "; Estado: "
+                            + processos.get(j).getEstado());
+        }
+
+        int numMax = Integer.MAX_VALUE;
+        for (int i = 1; i < 40; i++) {
+
+            System.out.println("Tempo: " + i);
+
+            terminator();
+
+            blockChecker();
+
+            Processo processoEscolhido = escolherProcesso();
+            processoEscolhido.setEstado(Estado.RUNNING);
+            System.out.println("Processo " + processoEscolhido.getNome() + " está em execução.");
+
+            // o que eu quero pegar aqui são os processos com surtoCPU
+            if (processoEscolhido.getSurtoCPU() > 0) { 
+                processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
+                processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
+                processoEscolhido.setSurtoCPU(processoEscolhido.getSurtoCPU() - 1);
+                
+                //creditosChecker(processoEscolhido);
+
+            // os sem surtoCPU caem aqui (sem alterar surtoCPU)
+            } else if (processoEscolhido.getSurtoCPU() == -1) {  
+                processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
+                processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
+                atualizarOrdem();
+                creditosChecker(processoEscolhido);
+            }
+
+            
+            if (todosFinalizados()){
+                System.out.println("Todos os processos finalizados.");
+                System.exit(0);
+            }
+        }
+
     }
-        
+
 }
 
 /**

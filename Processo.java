@@ -8,9 +8,9 @@ public class Processo {
     private int prioridade;
     private int creditos;
     private Estado estado;
+    private int surtoCPUDefault;
 
-    public Processo(String nome, int surtoCPU, int tempoES, int tempoTotalCPU, int ordem, int prioridade, int creditos,
-            Estado estado) {
+    public Processo(String nome, int surtoCPU, int tempoES, int tempoTotalCPU, int ordem, int prioridade, int creditos, int surtoCPUDefault) {
         this.nome = nome;
         this.surtoCPU = surtoCPU;
         this.tempoES = tempoES;
@@ -19,6 +19,7 @@ public class Processo {
         this.prioridade = prioridade;
         this.creditos = creditos;
         this.estado = Estado.READY;
+        this.surtoCPUDefault = surtoCPUDefault;
     }
     
 
@@ -84,5 +85,9 @@ public class Processo {
 
     public int getCreditos() {
         return this.creditos;
+    }
+
+    public int getSurtoCPUDefault(){
+        return surtoCPUDefault;
     }
 }
