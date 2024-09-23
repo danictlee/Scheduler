@@ -70,7 +70,7 @@ public class Scheduler {
             if (p.getEstado() == Estado.RUNNING && p.getSurtoCPU() == 0) {
                 p.setEstado(Estado.BLOCKED);
             } else if (p.getEstado() == Estado.BLOCKED && p.getTempoES() == 0) {
-                for (Processo restaurador : backupProcessos) {
+                for (Processo restaurador : backup) {
                     if (restaurador.getNome().equals(p.getNome())) {
                         p.setSurtoCPU(restaurador.getSurtoCPU());
                         p.setEstado(Estado.READY);
@@ -90,8 +90,17 @@ public class Scheduler {
         }
     }
 
-    public void ordenador(){
-        
+    public void atualizarOrdem() {
+        for (Processo p : processos) {
+            if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
+                for (Processo p2 : processos) {
+                    if (p2.getOrdem() < p.getOrdem()) {
+                        p2.setOrdem(p2.getOrdem() + 1);
+                    }
+                }
+                p.setOrdem(processos.size());
+            }
+        }
     }
 
     public void escalonar() {
@@ -104,14 +113,35 @@ public class Scheduler {
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
                 processoEscolhido.setSurtoCPU(processoEscolhido.getSurtoCPU() - 1);
+                processoEscolhido.setPrioridade(processoEscolhido.getPrioridade() - 1);
+                atualizarOrdem();
             } else if (processoEscolhido.getEstado() == Estado.READY && processoEscolhido.getSurtoCPU() == 0) { // os sem surtoCPU caem aqui (sem alterar surtoCPU)
                 processoEscolhido.setEstado(Estado.RUNNING);
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
-            }
+                processoEscolhido.setPrioridade(processoEscolhido.getPrioridade() - 1);
+                atualizarOrdem();
+            }   
 
         }
     }
+
+    public static void main(String[] args) {
+        Scheduler scheduler = new Scheduler();
+
+        Processo p1 = new Processo("A", 2, 5, 6, 1, 3, 1, Estado.READY);
+        Processo p2 = new Processo("B", 3, 10, 6, 2, 3, 1, Estado.READY);
+        Processo p3 = new Processo("C", 0, 0, 14, 3, 3, 1, Estado.READY);
+        Processo p4 = new Processo("D", 0, 0, 10, 4, 3, 1 , Estado.READY);
+
+        scheduler.addProcesso(p1);
+        scheduler.addProcesso(p2);
+        scheduler.addProcesso(p3);
+        scheduler.addProcesso(p4);
+
+        scheduler.backupProcessos();
+    }
+        
 }
 
 /**
