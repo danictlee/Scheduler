@@ -1,10 +1,15 @@
 import java.util.*;
 
 public class Scheduler {
-    List<Processo> processos = new ArrayList<Processo>();
-    List<Processo> backup = new ArrayList<Processo>();
-    int tempo = 0;
-    int surtadoLimite;
+    private List<Processo> processos;;
+    private List<Processo> backup;
+   
+    private Processo processoEscolhido;
+
+    public Scheduler(){
+        processos = new ArrayList<Processo>();
+        backup = new ArrayList<Processo>();
+    }
 
     public void addProcesso(Processo p) {
         processos.add(p);
@@ -17,39 +22,39 @@ public class Scheduler {
     }
 
     public Processo escolherProcesso() {
-        Processo processoEscolhido = processos.get(0);
+        Processo processoEscolhido = null;
         Processo processoRunning = null;
-
+    
         // Verificar se existe um processo RUNNING
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING) {
                 processoRunning = p;
             }
-
-            // Se existir um processo RUNNING e ele ainda tiver créditos e o surtoCPU não tiver chegado a zero, mantê-lo
-            if (processoRunning != null && processoRunning.getCreditos() > 0 && (processoRunning.getSurtoCPU() > 0 || processoRunning.getSurtoCPU() == -1)) {
-                processoEscolhido = processoRunning;
-            } 
-
-            // Se o processo que está executando não tiver mais créditos ou surtoCPU, achar o outro processo que deveria rodar
-            else {
+        }
+    
+        // Se existir um processo RUNNING e ele ainda tiver créditos e o surtoCPU não tiver chegado a zero, mantê-lo
+        if (processoRunning != null && processoRunning.getCreditos() > 0 && (processoRunning.getSurtoCPU() > 0 || processoRunning.getSurtoCPU() == -1)) {
+            processoEscolhido = processoRunning;
+        } else {
+            // Achar o processo READY com o maior crédito e, em caso de empate, com a menor ordem
+            for (Processo p : processos) {
                 if (p.getEstado() == Estado.READY) {
-                    if (p.getCreditos() > processoEscolhido.getCreditos() ||
-                            (p.getCreditos() == processoEscolhido.getCreditos()
-                                    && p.getOrdem() < processoEscolhido.getOrdem())) {
+                    if (processoEscolhido == null || 
+                        p.getCreditos() > processoEscolhido.getCreditos() || 
+                        (p.getCreditos() == processoEscolhido.getCreditos() && p.getOrdem() < processoEscolhido.getOrdem())) {
                         processoEscolhido = p;
                     }
                 }
             }
         }
-
+    
         return processoEscolhido;
     }
 
     public void atribuicaoDeCreditos() {
         boolean todosCreditosZero = true;
         for (Processo p : processos) {
-            if (p.getCreditos() > 0) {
+            if ((p.getEstado() == Estado.RUNNING || p.getEstado() == Estado.READY) && p.getCreditos() > 0) {
                 todosCreditosZero = false;
                 break;
             }
@@ -74,10 +79,11 @@ public class Scheduler {
                 if (p.getTempoES() == 0){
                     int surtoDefault = p.getSurtoCPUDefault();
                     p.setSurtoCPU(surtoDefault);
-                    System.out.println("Processo " + p.getNome() + " atualizou o tempo de Surto de CPU");
-                       
+                    int tempoESDefault = p.getTempoESDefault();
                     p.setEstado(Estado.READY);
                     System.out.println("Processo " + p.getNome() + " finalizou as operações de E/S, seu estado foi atualizado para READY.");
+                    atualizarOrdem();
+                    p.setTempoES(tempoESDefault);
                 }
 
                 else{
@@ -93,6 +99,9 @@ public class Scheduler {
             if (p.getEstado() == Estado.RUNNING && p.getTempoTotalCPU() == 0) {
                 p.setEstado(Estado.EXIT);
                 System.out.println("Processo " + p.getNome() + " terminou.");
+                todosFinalizados();
+                processoEscolhido = escolherProcesso();
+                processoEscolhido.setEstado(Estado.RUNNING);
             }
         }
     }
@@ -101,7 +110,16 @@ public class Scheduler {
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
                 for (Processo p2 : processos) {
-                    if (p2.getOrdem() < p.getOrdem()) {
+                    if (p2.getOrdem() > p.getOrdem()) {
+                        p2.setOrdem(p2.getOrdem() - 1);
+                    }
+                }
+                p.setOrdem(processos.size());
+            }
+
+            else if (p.getEstado() == Estado.READY && p.getTempoES() == 0){
+                for (Processo p2 : processos) {
+                    if (p2.getOrdem() > p.getOrdem()) {
                         p2.setOrdem(p2.getOrdem() - 1);
                     }
                 }
@@ -110,18 +128,28 @@ public class Scheduler {
         }
     }
 
-    public boolean todosFinalizados() {
+    public void todosFinalizados() {
+        boolean todosFinalizados = true;
         for (Processo p : processos) {
             if (p.getEstado() != Estado.EXIT) {
-                return false;
+                todosFinalizados = false;
             }
         }
-        return true;
+
+        if (todosFinalizados){
+            System.out.println("Todos os processos foram finalizados.");
+            System.exit(0);
+        }
     }
 
 
     public void creditosChecker(Processo p){
-        if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
+        if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0 && p.getSurtoCPU() == -1) {
+            System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY.");
+            p.setEstado(Estado.READY);
+            atribuicaoDeCreditos();
+        }
+        else if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0 && p.getSurtoCPU() > 0) {
             System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY.");
             p.setEstado(Estado.READY);
             atribuicaoDeCreditos();
@@ -143,46 +171,51 @@ public class Scheduler {
         }
 
         int numMax = Integer.MAX_VALUE;
+
+        processoEscolhido = escolherProcesso();
+        processoEscolhido.setEstado(Estado.RUNNING);
+
         for (int i = 1; i < 40; i++) {
 
             System.out.println("Tempo: " + i);
+
+            atribuicaoDeCreditos();
 
             terminator();
 
             blockChecker();
 
-            Processo processoEscolhido = escolherProcesso();
-            processoEscolhido.setEstado(Estado.RUNNING);
-            System.out.println("Processo " + processoEscolhido.getNome() + " está em execução.");
+            if (processoEscolhido.getEstado() == Estado.RUNNING) {
+                System.out.println("Processo " + processoEscolhido.getNome() + " está em execução.");
+            }
 
             // o que eu quero pegar aqui são os processos com surtoCPU
             if (processoEscolhido.getSurtoCPU() > 0) { 
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
                 processoEscolhido.setSurtoCPU(processoEscolhido.getSurtoCPU() - 1);
+               
+                atualizarOrdem();
+                creditosChecker(processoEscolhido);
                 
-
-                // NO TEMPO 13, O PROCESSO A DEVERIA PARAR A SUA EXECUÇÃO E IR PARA O READY.
-                // ESTA FALTANDO UMA VERIFICAÇÃO DOS CREDITOS PARA AQUELES PROCESSOS QUE TEM E/S
-                // SE UTILIZAMOS O creditosChecker(processoEscolhido) AQUI, PROCESSOS QUE TEM QUE SER SETADOS
-                // COMO BLOCKED ENTRAM AQUI ANTES DE ACONTECER A VERIFICAÇÃO DO BLOCKED, ENTAO ELES VAO PRA READY.
-                // ACHAR UM JEITO DE ENCAIXAR O blockChecker() AQUI, ANTES DO creditosChecker().
-
-                //creditosChecker(processoEscolhido);
-
             // os sem surtoCPU caem aqui (sem alterar surtoCPU)
             } else if (processoEscolhido.getSurtoCPU() == -1) {  
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
+                
                 atualizarOrdem();
                 creditosChecker(processoEscolhido);
+            
             }
 
             
-            if (todosFinalizados()){
-                System.out.println("Todos os processos finalizados.");
-                System.exit(0);
-            }
+            todosFinalizados();
+              
+
+            atribuicaoDeCreditos();
+            processoEscolhido = escolherProcesso();
+            processoEscolhido.setEstado(Estado.RUNNING);
+
         }
 
     }
