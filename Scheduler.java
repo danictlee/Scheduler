@@ -9,6 +9,10 @@ public class Scheduler {
         processos = new ArrayList<Processo>();
     }
 
+        public void addProcesso(Processo p) {
+        processos.add(p);
+    }
+
     public Processo escolherProcesso() {
         Processo processoEscolhido = null;
         Processo processoRunning = null;
