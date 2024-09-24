@@ -14,8 +14,6 @@ public class SistemaOperacional {
         scheduler.addProcesso(p3);
         scheduler.addProcesso(p4);
 
-        scheduler.backupProcessos();
-
         scheduler.escalonar();
 
     }
