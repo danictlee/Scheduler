@@ -1,24 +1,12 @@
 import java.util.*;
 
 public class Scheduler {
-    private List<Processo> processos;;
-    private List<Processo> backup;
+    private List<Processo> processos;
    
     private Processo processoEscolhido;
 
     public Scheduler(){
         processos = new ArrayList<Processo>();
-        backup = new ArrayList<Processo>();
-    }
-
-    public void addProcesso(Processo p) {
-        processos.add(p);
-    }
-
-    public void backupProcessos() {
-        for (Processo p : processos) {
-            backup.add(p);
-        }
     }
 
     public Processo escolherProcesso() {
@@ -51,11 +39,11 @@ public class Scheduler {
         return processoEscolhido;
     }
 
-    public void atribuicaoDeCreditos() {
+    public void atribuicaoDeCreditos() { //checa pra ver se todos os processos estão sem crédito; se sim, aplica a fórmula créditos = créditos/2*prioridade para atribuir créditos
         boolean todosCreditosZero = true;
         for (Processo p : processos) {
             if ((p.getEstado() == Estado.RUNNING || p.getEstado() == Estado.READY) && p.getCreditos() > 0) {
-                todosCreditosZero = false;
+                todosCreditosZero = false; //existem processos com créditos, logo não é necessário fazer a atribuição
                 break;
             }
         }
@@ -69,14 +57,14 @@ public class Scheduler {
 
     public void blockChecker() { // checa e atualiza o estado dos processos blocked
         for (Processo p : processos) {
-            if (p.getEstado() == Estado.RUNNING && p.getSurtoCPU() == 0) {
+            if (p.getEstado() == Estado.RUNNING && p.getSurtoCPU() == 0) { //se um processo está running e acabou de chegar ao fim de seu surtoCPU, conduzir ele para as operações de E/S, além de bloqueá-lo
                 p.setEstado(Estado.BLOCKED);
                 System.out.println("Processo " + p.getNome() + " foi bloqueado, iniciando operações E/S.");
             }
-            else if (p.getEstado() == Estado.BLOCKED){
+            else if (p.getEstado() == Estado.BLOCKED){ //se um processo estiver bloqueado, reduz em 1 unidade seu tempo de E/S
                 p.setTempoES(p.getTempoES() - 1);
 
-                if (p.getTempoES() == 0){
+                if (p.getTempoES() == 0){ //ao chegar no fim de suas operações de E/S, os valores surtoCPU e tempoES são restautados á sua forma original, pois precisarão ser usados novamente em outros ciclos, além de mudar seu estado para READY e atualizar sua ordem.
                     int surtoDefault = p.getSurtoCPUDefault();
                     p.setSurtoCPU(surtoDefault);
                     int tempoESDefault = p.getTempoESDefault();
@@ -87,7 +75,7 @@ public class Scheduler {
                 }
 
                 else{
-                    System.out.println("Processo " + p.getNome() + " está bloqueado, faltam " + p.getTempoES()
+                    System.out.println("Processo " + p.getNome() + " está bloqueado, faltam " + p.getTempoES() //acompanhar quanto tempo falta nas operações de E/S
                             + " unidades de tempo para finalizar as operações de E/S.");
                 }
             }
@@ -106,7 +94,7 @@ public class Scheduler {
         }
     }
 
-    public void atualizarOrdem() {
+    public void atualizarOrdem() { // esse método é chamado sempre que for necessário atualizar a ordem dos processos, movendo todos os outros processos -1 posicção para cima e o processo para o final da fila
         for (Processo p : processos) {
             if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0) {
                 for (Processo p2 : processos) {
@@ -128,7 +116,7 @@ public class Scheduler {
         }
     }
 
-    public void todosFinalizados() {
+    public void todosFinalizados() { //checa para ver se todos os processos estão finalizados; se sim, retorna um sysout de encerramento e sai do programa
         boolean todosFinalizados = true;
         for (Processo p : processos) {
             if (p.getEstado() != Estado.EXIT) {
@@ -144,13 +132,13 @@ public class Scheduler {
 
 
     public void creditosChecker(Processo p){
-        if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0 && p.getSurtoCPU() == -1) {
+        if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0 && p.getSurtoCPU() == -1) { //checa os créditos dos processos que não tem surtoCPU (-1) e se restaura os créditos para esses processos
             System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY.");
             p.setEstado(Estado.READY);
             atribuicaoDeCreditos();
         }
         else if (p.getEstado() == Estado.RUNNING && p.getCreditos() == 0 && p.getSurtoCPU() > 0) {
-            System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY.");
+            System.out.println("Processo " + p.getNome() + " perdeu seus créditos, atualizando o seu estado para READY."); //checa agora os processos que tem surtoCPU mas que estão sem créditos, e restaura os créditos 
             p.setEstado(Estado.READY);
             atribuicaoDeCreditos();
         }
@@ -161,8 +149,8 @@ public class Scheduler {
 
         System.out.println("Processos iniciais: ");
 
-        for (int j = 0; j < processos.size(); j++) {
-            System.out.println("Processo " + j + ": " + processos.get(j).getNome() + "; SurtoCPU: " 
+        for (int j = 0; j < processos.size(); j++) { //printa inicialmente todas as informações dos processos
+            System.out.println("Processo " + j + ": " + processos.get(j).getNome() + "; SurtoCPU: "  
                             + processos.get(j).getSurtoCPU() + "; TempoES: " + processos.get(j).getTempoES()
                             + "; TempoTotalCPU: " + processos.get(j).getTempoTotalCPU() + "; Ordem: "
                             + processos.get(j).getOrdem() + "; Prioridade: " + processos.get(j).getPrioridade()
@@ -172,24 +160,24 @@ public class Scheduler {
 
         int numMax = Integer.MAX_VALUE;
 
-        processoEscolhido = escolherProcesso();
+        processoEscolhido = escolherProcesso(); //escolhe o processo para ser escalonado
         processoEscolhido.setEstado(Estado.RUNNING);
 
         for (int i = 1; i < 40; i++) {
 
-            System.out.println("Tempo: " + i);
+            System.out.println("Tempo: " + i); //medida de tempo 
 
-            atribuicaoDeCreditos();
+            atribuicaoDeCreditos(); //checa créditos dos processos
 
-            terminator();
+            terminator(); //checa tempoCPU dos processos
 
-            blockChecker();
+            blockChecker(); //checa surtoCPU e tempoES dos processos
 
             if (processoEscolhido.getEstado() == Estado.RUNNING) {
                 System.out.println("Processo " + processoEscolhido.getNome() + " está em execução.");
             }
 
-            // o que eu quero pegar aqui são os processos com surtoCPU
+            // processos com surtoCPU deverão cair aqui para serem "executados"/ diminuir atributos qwue indicam a passagem de um ciclo
             if (processoEscolhido.getSurtoCPU() > 0) { 
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
@@ -198,22 +186,22 @@ public class Scheduler {
                 atualizarOrdem();
                 creditosChecker(processoEscolhido);
                 
-            // os sem surtoCPU caem aqui (sem alterar surtoCPU)
+            // processos se, surtoCPU deverão cair aqui para serem "executados"/ diminuir atributos que indicam a passagem de um ciclo
             } else if (processoEscolhido.getSurtoCPU() == -1) {  
                 processoEscolhido.setCreditos(processoEscolhido.getCreditos() - 1);
                 processoEscolhido.setTempoTotalCPU(processoEscolhido.getTempoTotalCPU() - 1);
                 
-                atualizarOrdem();
-                creditosChecker(processoEscolhido);
+                atualizarOrdem(); //após "executar", atualizar a ordem
+                creditosChecker(processoEscolhido); //checar para ver se o processo escolhido pode realmente ser escolhido
             
             }
 
             
-            todosFinalizados();
+            todosFinalizados(); // ver se todos os procesos estão finalizados
               
 
-            atribuicaoDeCreditos();
-            processoEscolhido = escolherProcesso();
+            atribuicaoDeCreditos(); //ver se precisam repor créditos
+            processoEscolhido = escolherProcesso(); //escolhido o próximo processo, só rodar
             processoEscolhido.setEstado(Estado.RUNNING);
 
         }
@@ -221,61 +209,3 @@ public class Scheduler {
     }
 
 }
-
-/**
- * acho que entendi #pensamentos
- * 
- * quando um processo passa 1 unidade de tempo na CPU, ele perde 1 crédito. se
- * ele roda, ele perde prioridade.
- * se chega a 0 créditos, ele sai da cpu.
- * 
- * o processo, quando acaba de perder sua prioridade, acaba perdendo sua ordem
- * também,
- * logo ficando em último, o que se pode ver no exemplo no momento 12, quando o
- * processo 1
- * acabou de ser executado antes de restaurarem a prioridade/créditos, e quem
- * foi escalonado foi o processo 3,
- * e o processo 1, que acabou de ser executado, foi para o final da fila, e o
- * processo 2,
- * já que foi o penúltimo a ser executado, foi para o terceiro lugar, atrás do 4
- * e 3 (escolhido)
- **/
-
-/*
- * pensamentos lucao ~tentando entender
- * 
- * Os processos podem estar em 4 estados: Ready, Running, Blocked e Exit
- * Os processos já foram admitidos, o simulador deverá apenas executar
- * 
- * Cada processo tem um número de creditos. INICIALMENTE, o numero de creditos é
- * igual a prioridade
- * O processo que tiver o maior numero de creditos, e esta em estado READY, é
- * selecionado.
- * Ao ser escalonado, o processo utiliza tempo de CPU, sendo esse tempo um
- * surto de CPU anterior à um bloqueio (se o processo tem E/S) ou tempo total de
- * CPU.
- * Em processos com operações de E/S, o surto é descontado do tempo total de
- * CPU.
- * 
- * A cada segundo que passa, o processo em execucao perde um credito.
- * quando seus creditos chegarem a 0, ou houver algum bloqueio (processo de
- * entrada e saida) o escalanador deve selecionar outro processo para exec
- * 
- * Se nenhum processo na fila de prontos possuir creditos, o algoritmo faz uma
- * atribuicao de
- * creditos a todos os processos (incluindo processos blocked), de acordo com
- * cred = cred / 2 + prioridade.
- * 
- * 
- * O escalanador deverá apresentar o escalonamento dos processos, sua utilização
- * de CPU,
- * o tempo de execução, bem como os seus estados em uma linha do tempo.
- * 
- * O parametro ordem é utilizado como criterio de desempate (se mais de um
- * processo possuir
- * a mesma prioridade). Um processo que acabou de perder sua prioridade (se for
- * zero), sera
- * o que possui a menor ordem atual, tendo os outros processos uma atualizao de
- * sua ordem.
- * 
- */
