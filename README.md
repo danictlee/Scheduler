@@ -1,4 +1,4 @@
-# scheduling
+# Scheduler
 
 This is a Scheduler implementation on Java.
 
